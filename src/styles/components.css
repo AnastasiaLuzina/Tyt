@@ -1,0 +1,125 @@
+.chip {
+  border: none;
+  white-space: nowrap;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: #e8e2d8;
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+.chip.active {
+  background: var(--deep);
+  color: white;
+}
+.action-btn {
+  margin-top: auto;
+  height: 46px;
+  border: none;
+  border-radius: 15px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.take-btn {
+  background: var(--deep);
+  color: white;
+}
+.queue-btn {
+  background: #ece5d9;
+  color: var(--brick);
+}
+.reserved-btn {
+  background: #dce3d8;
+  color: #5f7063;
+}
+.manage-btn {
+  background: #ece7df;
+  color: var(--deep);
+}
+.toggle-switch {
+  width: 48px;
+  height: 28px;
+  background: #ddd3c5;
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+}
+.toggle-switch.active {
+  background: var(--deep);
+}
+.toggle-switch::after {
+  content: '';
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  background: white;
+  border-radius: 50%;
+  top: 3px;
+  right: 3px;
+  transition: .2s;
+}
+.toggle-switch.active::after {
+  right: 23px;
+}
+.quick-toggle {
+  width: 46px;
+  height: 26px;
+  border-radius: 999px;
+  background: #d5cabd;
+  position: relative;
+  cursor: pointer;
+}
+.quick-toggle.active {
+  background: var(--deep);
+}
+.quick-toggle::after {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  top: 3px;
+  left: 3px;
+  transition: .2s;
+}
+.quick-toggle.active::after {
+  left: 23px;
+}
+.avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #d9d2c7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--deep);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.empty-state {
+  background: rgba(251,250,247,.9);
+  border-radius: 26px;
+  padding: 34px 24px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.empty-state i {
+  font-size: 40px;
+  color: var(--ochra);
+  margin-bottom: 14px;
+}
+.settings-danger {
+  margin-top: 20px;
+  background: #f5ede5;
+  border-radius: 18px;
+  padding: 16px;
+  text-align: center;
+  color: var(--brick);
+  font-weight: 700;
+  cursor: pointer;
+}
