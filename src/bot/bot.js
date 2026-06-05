@@ -1,8 +1,8 @@
 const TelegramBot = require('node-telegram-bot-api');
 const { db } = require('../db/db');
 
-const BOT_TOKEN = ''; // теперь берётся из .env
-const BOT_USERNAME = 'TytShare_BoT';
+const BOT_TOKEN = process.env.BOT_TOKEN || '';
+const BOT_USERNAME = process.env.BOT_USERNAME || 'TytShare_BoT';
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 

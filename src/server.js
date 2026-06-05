@@ -6,8 +6,8 @@ const cors = require('cors');
 const { initDB, db } = require('./db/db');
 
 const app = express();
-const PORT = 8001;
-const BOT_USERNAME = 'TytShare_BoT';
+const PORT = process.env.PORT || 8001;
+const BOT_USERNAME = process.env.BOT_USERNAME || 'TytShare_BoT';
 
 app.use(cors());
 app.use(express.json());
@@ -31,6 +31,51 @@ const upload = multer({ storage });
 const getUserByTag = (tag) => db.getAsync(`SELECT * FROM users WHERE tag = ?`, [tag]);
 const getUserByTelegramId = (telegram_id) => db.getAsync(`SELECT * FROM users WHERE telegram_id = ?`, [telegram_id]);
 const getUserById = (id) => db.getAsync(`SELECT * FROM users WHERE id = ?`, [id]);
+
+// ---------- Наполнение БД демо-данными при первом запуске ----------
+async function seedDatabase() {
+    try {
+        const userCount = await db.getAsync(`SELECT COUNT(*) as count FROM users`);
+        if (userCount.count > 0) {
+            console.log('📦 База данных уже содержит пользователей, пропускаем добавление демо-данных.');
+            return;
+        }
+
+        console.log('🔄 База данных пуста, добавляем демо-пользователя и объявления...');
+
+        const testUser = {
+            telegram_id: 111111,
+            nickname: 'Алиса Тестовая',
+            tag: '@alisa_test',
+            dorm: 'Корпус 8.1',
+            trust_level: 5
+        };
+        await db.runAsync(`
+            INSERT INTO users (telegram_id, nickname, tag, dorm, trust_level) 
+            VALUES (?, ?, ?, ?, ?)
+        `, [testUser.telegram_id, testUser.nickname, testUser.tag, testUser.dorm, testUser.trust_level]);
+
+        const demoItems = [
+            { title: 'Конспекты по матану — 1 курс', category: 'Книги', description: 'Помогли пережить сессию.', photo_path: 'https://images.unsplash.com/photo-1521587760476-6c12a4b040da?q=80&w=1000&auto=format&fit=crop' },
+            { title: 'Тёплая худи oversize', category: 'Одежда', description: 'Освобождаю место перед летом.', photo_path: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?q=80&w=1000&auto=format&fit=crop' },
+            { title: 'Настольная лампа IKEA', category: 'Мебель', description: 'Ищет новый угол.', photo_path: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?q=80&w=1000&auto=format&fit=crop' },
+            { title: 'Клавиатура Logitech', category: 'Техника', description: 'Жалко выбрасывать.', photo_path: 'https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?q=80&w=1000&auto=format&fit=crop' },
+            { title: 'Сковородка маленькая', category: 'Посуда', description: 'Переезжаю.', photo_path: 'https://images.unsplash.com/photo-1584990347449-ae8be8a2d7e4?q=80&w=1000&auto=format&fit=crop' },
+            { title: 'Гантели 5 кг', category: 'Спорт', description: 'Не помещаются.', photo_path: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=1000&auto=format&fit=crop' }
+        ];
+
+        for (const item of demoItems) {
+            await db.runAsync(`
+                INSERT INTO items (owner_telegram_id, title, description, category, photo_path, status) 
+                VALUES (?, ?, ?, ?, ?, ?)
+            `, [testUser.telegram_id, item.title, item.description, item.category, item.photo_path, 'active']);
+        }
+
+        console.log('✅ Демо-данные успешно добавлены в базу данных.');
+    } catch (err) {
+        console.error('❌ Ошибка при заполнении БД демо-данными:', err);
+    }
+}
 
 // ---------- API Роуты ----------
 
@@ -188,7 +233,7 @@ app.get('/api/requests/my', async (req, res) => {
             item_id: c.item_id,
             title: c.title,
             description: c.description,
-            state: c.status === 'active' ? 'first' : 'selected', // упрощённо
+            state: c.status === 'active' ? 'first' : 'selected',
             position: 1,
             timer: null,
             token: c.token,
@@ -210,7 +255,8 @@ app.put('/api/items/:id/status', async (req, res) => {
     res.json({ success: true });
 });
 
-initDB().then(() => {
+initDB().then(async () => {
+    await seedDatabase();
     app.listen(PORT, () => {
         console.log(`🚀 Сервер запущен на http://localhost:${PORT}`);
     });
