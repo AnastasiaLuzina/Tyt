@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: tyt-app
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    volumes:
+      # Монтируем папку uploads, чтобы сохранять загруженные файлы
+      - ./uploads:/app/uploads
+      # Монтируем файл базы данных, чтобы данные сохранялись между перезапусками
+      - ./database.sqlite:/app/database.sqlite
+    environment:
+      - NODE_ENV=production
+      - PORT=8001
+      - BOT_TOKEN=${BOT_TOKEN}
+      - BOT_USERNAME=${BOT_USERNAME}
+    env_file:
+      - .env
