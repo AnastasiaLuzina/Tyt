@@ -1,11 +1,48 @@
-node_modules
-npm-debug.log
-.git
+# Git
+.git/
 .gitignore
-.env.example
-README.md
-.gitignore
-public/
-*.md
-*.log
+.github/
+
+# Node.js зависимости (будут установлены внутри контейнера)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Переменные окружения (не копировать в образ)
+.env
+.env.local
+.env.*.local
+
+# IDE и системные файлы
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
+Thumbs.db
+
+# Временные файлы и логи
+logs/
+tmp/
+temp/
+*.log
+
+# Папки сборки (build будет создан внутри контейнера)
+build/
+dist/
+.parcel-cache/
+
+# Документация
+README.md
+*.md
+LICENSE
+
+# Docker-файлы (не нужны внутри образа)
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Папка загрузок (создаётся при запуске, не копируем)
+uploads/
