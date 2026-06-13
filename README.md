@@ -1,6 +1,6 @@
 # «Тут» — сервис обмена вещами в общежитии (v2)
 
-**«Тут»** — это веб-приложение для студентов, позволяющее отдавать и забирать ненужные вещи внутри своего общежития. Проект сочетает удобный интерфейс (React) с бэкендом на Express, Telegram-ботом для анонимного общения, пагинацией, управлением статусами и загрузкой аватаров.
+**«Тут»** — это веб-приложение для студентов, позволяющее отдавать и забирать ненужные вещи внутри своего общежития. Проект сочетает удобный интерфейс (React) с бэкендом на Express, Telegram-ботом для анонимного общения, пагинацией, управлением статусами, загрузкой аватар и **полной контейнеризацией** с CI/CD через GitHub Actions.
 
 ---
 
@@ -18,6 +18,9 @@
 - Профиль пользователя с **загрузкой аватарки**, «котодомом» (интерактивный маскот) и настройками.
 - Бонусная система «Обменять тепло» (купон на скидку).
 - **Безопасное хранение токена бота** через переменные окружения (`.env`).
+- **Контейнеризация** (Docker + docker-compose) для простого развёртывания.
+- **Автоматическая сборка и публикация Docker-образа** в GitHub Container Registry (GHCR) через GitHub Actions.
+- **(Опционально)** Автоматический деплой на VPS через SSH.
 
 ---
 
@@ -26,64 +29,158 @@
 - Node.js 18+
 - npm или yarn
 - Telegram-бот (получить токен у [@BotFather](https://t.me/BotFather))
+- (для Docker) Docker и Docker Compose
 
 ---
 
-## 📁 Структура проекта
+## 📁 Структура проекта (актуальная)
 
 ```
 Tyt/
-├── public/                  # статика (index.html, фото для маскота)
-├── src/
-│   ├── api/                 # клиентские модули для работы с API
-│   │   ├── index.js         # реэкспорт всех функций
-│   │   ├── config.js        # базовый URL
-│   │   ├── auth.js          # регистрация
-│   │   ├── items.js         # объявления + пагинация + изменение статуса
-│   │   ├── requests.js      # заявки пользователя
-│   │   └── users.js         # загрузка аватарки
-│   ├── components/          # переиспользуемые React-компоненты
+├── .github/
+│   └── workflows/
+│       └── docker-publish.yml      # CI/CD пайплайн GitHub Actions
+├── backend/                         # серверная часть
+│   ├── server.js                    # основной сервер Express
+│   ├── bot.js                       # Telegram-бот (ретрансляция сообщений)
+│   ├── db.js                        # инициализация SQLite и запросы
+│   ├── seed.js                      # заполнение БД тестовыми данными (опционально)
+│   ├── routes/                      # роуты API
+│   │   ├── auth.js
+│   │   ├── items.js
+│   │   ├── requests.js
+│   │   └── users.js
+│   └── middleware/
+│       └── errorHandler.js          # централизованная обработка ошибок
+├── public/                          # статика (index.html, фото для маскота)
+│   ├── photo/                       # картинки для котодома
+│   └── index.html
+├── src/                             # клиентская часть (React)
+│   ├── api/                         # клиентские модули для работы с API
+│   │   ├── index.js                 # реэкспорт всех функций
+│   │   ├── auth.js                  # регистрация
+│   │   ├── config.js                # базовый URL
+│   │   ├── items.js                 # объявления + пагинация + изменение статуса
+│   │   ├── requests.js              # заявки пользователя
+│   │   └── users.js                 # загрузка аватарки
+│   ├── components/                  # переиспользуемые React-компоненты
 │   │   ├── BottomNav.jsx
 │   │   ├── Catodrom.jsx
 │   │   ├── Modals.jsx
 │   │   └── RatingBadge.jsx
-│   ├── contexts/            # React-контексты (AuthContext)
-│   ├── pages/               # страницы приложения
-│   │   ├── HomePage.jsx     # лента с пагинацией
-│   │   ├── ItemsPage.jsx    # мои объявления + управление статусами
+│   ├── contexts/                    # React-контексты
+│   │   └── AuthContext.jsx          # авторизация и состояние пользователя
+│   ├── pages/                       # страницы приложения
+│   │   ├── HomePage.jsx             # лента с пагинацией
+│   │   ├── ItemsPage.jsx            # мои объявления + управление статусами
 │   │   ├── LoginPage.jsx
-│   │   └── ProfilePage.jsx  # загрузка аватара
-│   ├── styles/              # CSS-файлы
+│   │   └── ProfilePage.jsx          # загрузка аватара
+│   ├── styles/                      # CSS-файлы
 │   │   ├── components.css
 │   │   ├── global.css
 │   │   ├── home.css
 │   │   ├── items.css
 │   │   ├── layout.css
 │   │   └── profile.css
-│   ├── utils/               # вспомогательные функции и демо-данные
+│   ├── utils/                       # вспомогательные функции и демо-данные
 │   │   ├── demoData.js
 │   │   └── helpers.js
-│   ├── App.js
-│   ├── index.js
+│   ├── App.js                       # корневой компонент React
+│   ├── index.js                     # точка входа React
 │   └── reportWebVitals.js
-├── routes/                  # серверные роуты (Express)
-│   ├── auth.js
-│   ├── items.js
-│   ├── requests.js
-│   └── users.js
-├── middleware/              # промежуточные обработчики
-│   └── errorHandler.js
-├── db/
-│   └── db.js                # инициализация SQLite + все запросы
-├── bot.js                   # Telegram-бот (логика обмена сообщениями)
-├── server.js                # основной сервер Express (подключает роуты)
-├── uploads/                 # папка для загруженных фото (создаётся)
-├── .env.example             # шаблон переменных окружения
-├── .env                     # (создаётся пользователем, не пушится)
-├── .gitignore
+├── uploads/                         # папка для загруженных фото (создаётся автоматически)
+├── .dockerignore                    # исключения для Docker-образа
+├── .env.example                     # шаблон переменных окружения
+├── .env                             # (создаётся пользователем, не пушится)
+├── Dockerfile                       # инструкция для сборки Docker-образа
+├── docker-compose.yml               # оркестрация контейнеров
 ├── package.json
-└── README.md
+├── package-lock.json
+└── README.md                        # этот файл
 ```
+
+---
+
+## 🚀 Запуск проекта
+
+### Обычный запуск (без Docker)
+
+1. **Клонируйте репозиторий**
+   ```bash
+   git clone https://github.com/ваш-аккаунт/Tyt.git
+   cd Tyt
+   ```
+
+2. **Установите зависимости**
+   ```bash
+   npm install
+   ```
+
+3. **Создайте файл `.env`** (скопируйте `.env.example` и укажите свои значения):
+   ```
+   BOT_TOKEN=ваш_токен_от_BotFather
+   PORT=8001
+   BOT_USERNAME=TytShare_BoT   # опционально
+   ```
+
+4. **Запустите сервер и клиент**
+   - В одном терминале: `npm run server` (запускает `backend/server.js`)
+   - В другом: `npm start` (запускает React-клиент)
+   - Или одной командой (если установлен concurrently): `npm run dev`
+
+5. **Заполните базу тестовыми данными** (опционально):
+   ```bash
+   node backend/seed.js
+   ```
+
+---
+
+### 🐳 Запуск через Docker (рекомендуется для продакшена)
+
+1. **Убедитесь, что установлены Docker и Docker Compose.**
+
+2. **Скопируйте `.env.example` в `.env`** и заполните реальными данными (токен бота и т.д.).
+
+3. **Соберите и запустите контейнер:**
+   ```bash
+   docker-compose up -d
+   ```
+   При первом запуске образ будет собран локально (если вы используете `build: .` в compose-файле) или скачан из реестра.
+
+4. **Проверьте логи:**
+   ```bash
+   docker-compose logs -f
+   ```
+
+5. Откройте браузер на `http://localhost:8001` — приложение готово к работе.
+
+---
+
+### 🔄 Обновление на сервере (при использовании CI/CD)
+
+Если вы настроили автоматическую публикацию образов в GHCR, на сервере достаточно выполнить:
+```bash
+cd /opt/tyt   # или ваша папка с проектом
+docker-compose pull
+docker-compose up -d
+docker image prune -f
+```
+
+---
+
+## ⚙️ CI/CD (GitHub Actions)
+
+В папке `.github/workflows/` лежит файл `docker-publish.yml`. Он автоматически:
+- Собирает Docker-образ при пуше в `main`.
+- Публикует его в **GitHub Container Registry (GHCR)** с тегами `latest` и с коротким хешем коммита.
+- (Опционально) Деплоит на VPS через SSH, если настроены секреты.
+
+**Для деплоя на сервер нужно добавить в настройках репозитория (Settings → Secrets) следующие секреты:**
+- `DEPLOY_HOST` — IP сервера.
+- `DEPLOY_USER` — имя пользователя (например, `root`).
+- `DEPLOY_SSH_KEY` — приватный SSH-ключ.
+
+Подробнее см. в файле `.github/workflows/docker-publish.yml`.
 
 ---
 
@@ -91,8 +188,6 @@ Tyt/
 
 ### 1. Регистрация пользователя
 `POST /api/auth/register`
-
-Регистрирует нового пользователя или обновляет существующего по тегу.
 
 **Тело (JSON):**
 ```json
@@ -119,33 +214,13 @@ Tyt/
 }
 ```
 
----
-
 ### 2. Получение активных объявлений (с пагинацией)
 `GET /api/items?page=1&limit=10`
-
-Возвращает список активных объявлений (status = `'active'`) с пагинацией. По умолчанию `page=1`, `limit=10`.
 
 **Ответ (200):**
 ```json
 {
-  "items": [
-    {
-      "id": 1,
-      "owner_telegram_id": 123456789,
-      "title": "Конспекты по матану",
-      "description": "Помогли пережить сессию.",
-      "category": "Книги",
-      "photo_path": "/uploads/1234567890-file.jpg",
-      "status": "active",
-      "created_at": "2026-06-25 12:00:00",
-      "updated_at": "2026-06-25 12:00:00",
-      "owner_nick": "Алиса",
-      "owner_tag": "@alisa",
-      "owner_trust": 3,
-      "owner_avatar": null
-    }
-  ],
+  "items": [ ... ],
   "total": 42,
   "page": 1,
   "limit": 10,
@@ -153,78 +228,34 @@ Tyt/
 }
 ```
 
----
-
 ### 3. Создание объявления
-`POST /api/items`
+`POST /api/items` (multipart/form-data)
 
-Создаёт новое объявление с загрузкой фото (`multipart/form-data`).
-
-**Параметры формы:**
-- `title` (string) — название
-- `description` (string) — описание
-- `category` (string) — категория
-- `owner_telegram_id` (string или number) — ID владельца
-- `photo` (file) — изображение
+Параметры: `title`, `description`, `category`, `owner_telegram_id`, `photo` (файл).
 
 **Ответ (201):**
 ```json
 {
   "id": 2,
-  "owner_telegram_id": 123456789,
   "title": "Тёплая худи",
-  "description": "Освобождаю место.",
-  "category": "Одежда",
-  "photo_path": "/uploads/1234567891-file.jpg",
   "status": "active",
-  "created_at": "2026-06-25 12:05:00",
-  "updated_at": "2026-06-25 12:05:00"
+  ...
 }
 ```
-
----
 
 ### 4. Мои объявления (я отдаю)
 `GET /api/items/my?telegram_id={telegram_id}`
 
-Возвращает вещи текущего пользователя с информацией о заявителях (из `conversation`).
-
-**Параметры:** `telegram_id` (обязателен).
-
-**Ответ (200):**
-```json
-[
-  {
-    "id": 1,
-    "title": "Конспекты",
-    "status": "active",
-    "claimers": [
-      {
-        "nick": "@artem",
-        "rating": 96,
-        "info": "Оставил заявку",
-        "token": "abc123",
-        "avatar": "/uploads/avatar.jpg"
-      }
-    ]
-  }
-]
-```
-
----
+Возвращает список вещей с заявителями (из `conversation`).
 
 ### 5. Заявка «заберу»
 `POST /api/items/{itemId}/claim`
 
-Создаёт диалог между владельцем и заявителем. Возвращает ссылку на бота.
-
 **Тело (JSON):**
 ```json
-{
-  "user_telegram_id": 987654321
-}
+{ "user_telegram_id": 987654321 }
 ```
-**Ответ (200):**
+**Ответ:**
 ```json
 {
   "success": true,
@@ -233,110 +264,33 @@ Tyt/
 }
 ```
 
----
-
 ### 6. Мои заявки (я хочу)
 `GET /api/requests/my?telegram_id={telegram_id}`
-
-Возвращает список вещей, на которые пользователь подал заявку.
-
-**Ответ (200):**
-```json
-[
-  {
-    "id": 1,
-    "item_id": 5,
-    "title": "Настольная лампа",
-    "state": "first",
-    "position": 1,
-    "token": "abc123",
-    "status": "active",
-    "owner_nick": "Мила",
-    "owner_tag": "@mila",
-    "owner_avatar": "/uploads/avatar_mila.jpg"
-  }
-]
-```
-
----
 
 ### 7. Изменение статуса объявления
 `PUT /api/items/{itemId}/status`
 
-Обновляет статус вещи (доступные статусы: `'active'`, `'reserved'`, `'completed'`, `'archived'`).
-
-**Тело (JSON):**
+**Тело:**
 ```json
-{
-  "status": "reserved"
-}
+{ "status": "reserved" }   // active, reserved, completed, archived
 ```
-**Ответ (200):**
+**Ответ:**
 ```json
-{
-  "success": true
-}
+{ "success": true }
 ```
-
----
 
 ### 8. Загрузка аватарки
-`POST /api/users/avatar`
+`POST /api/users/avatar` (multipart/form-data)
 
-Загружает фото профиля пользователя (`multipart/form-data`).
+Параметры: `telegram_id`, `avatar` (файл).
 
-**Параметры формы:**
-- `telegram_id` (string) — ID пользователя
-- `avatar` (file) — изображение
-
-**Ответ (200):**
+**Ответ:**
 ```json
-{
-  "avatar_url": "/uploads/1234567890-avatar.jpg"
-}
+{ "avatar_url": "/uploads/1234567890-avatar.jpg" }
 ```
-
----
-
-## 🚀 Запуск проекта
-
-1. **Клонируйте репозиторий**  
-   `git clone https://github.com/ваш-аккаунт/Tyt.git`  
-   `cd Tyt`
-
-2. **Установите зависимости**  
-   `npm install`
-
-3. **Создайте файл `.env`**  
-   Скопируйте `.env.example` и укажите свои значения:
-   ```
-   BOT_TOKEN=ваш_токен_от_BotFather
-   PORT=8001
-   BOT_USERNAME=TytShare_BoT   # опционально
-   ```
-
-4. **Запустите сервер и клиент**  
-   В одном терминале: `npm run server`  
-   В другом: `npm start`  
-   Или одной командой: `npm run dev` (если настроен concurrently).
-
-5. **Заполните базу тестовыми данными** (опционально)  
-   `node seed.js`
-
----
-
-## 🛠 Технологии
-
-- **Frontend:** React 18, React Router, CSS Modules (plain CSS)
-- **Backend:** Node.js, Express, SQLite3, Multer
-- **Бот:** node-telegram-bot-api
-- **Дополнительно:** dotenv, cors, concurrently
 
 ---
 
 ## 📄 Лицензия
 
 Проект создан в образовательных целях. Все права принадлежат авторам.
-```
-
-Теперь README полностью синхронизирован с новой версией кода. Можете использовать его как основу для документации.

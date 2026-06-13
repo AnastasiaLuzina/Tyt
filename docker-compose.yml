@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  app:
+    # Образ из GitHub Container Registry (замените на свои данные)
+    image: ghcr.io/ваш_username/название_репозитория:latest
+    # Если хотите собирать локально, закомментируйте image и раскомментируйте build:
+    # build: .
+    container_name: tyt-app
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    volumes:
+      # Папка для загруженных фото (сохраняется между перезапусками)
+      - ./uploads:/app/uploads
+      # Файл SQLite базы данных (сохраняется между перезапусками)
+      - ./database.sqlite:/app/database.sqlite
+    environment:
+      - NODE_ENV=production
+      - PORT=8001
+      # Переменные окружения также можно задать через env_file (см. ниже)
+    env_file:
+      - .env

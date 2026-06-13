@@ -6,7 +6,7 @@ import HomePage from './pages/HomePage';
 import ItemsPage from './pages/ItemsPage';
 import ProfilePage from './pages/ProfilePage';
 import { CreateModal } from './components/Modals';
-import { publishItem } from './api/api';
+import { publishItem } from './api';
 
 function App() {
   const { isAuthenticated, telegramId } = useAuth();

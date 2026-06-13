@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchMyItems, fetchMyRequests } from '../api/api';
+import { fetchMyItems, fetchMyRequests } from '../api';
 
 const ItemsPage = () => {
   const { telegramId } = useAuth();

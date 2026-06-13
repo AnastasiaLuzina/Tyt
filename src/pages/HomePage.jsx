@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchItems, claimItem } from '../api/api';
+import { fetchItems, claimItem } from '../api';
 import { renderTrustDots } from '../utils/helpers';
 
 const HomePage = ({ onOpenCreate, refreshTrigger }) => {
