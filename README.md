@@ -39,55 +39,64 @@
 Tyt/
 ├── .github/
 │   └── workflows/
-│       └── docker-publish.yml    # CI/CD пайплайн GitHub Actions
-├── public/                        # статика (index.html, фото для маскота)
-│   ├── photo/                     # картинки для котодома
+│       └── docker-publish.yml      # CI/CD пайплайн GitHub Actions
+├── backend/                         # серверная часть
+│   ├── server.js                    # основной сервер Express
+│   ├── bot.js                       # Telegram-бот (ретрансляция сообщений)
+│   ├── db.js                        # инициализация SQLite и запросы
+│   ├── seed.js                      # заполнение БД тестовыми данными (опционально)
+│   ├── routes/                      # роуты API
+│   │   ├── auth.js
+│   │   ├── items.js
+│   │   ├── requests.js
+│   │   └── users.js
+│   └── middleware/
+│       └── errorHandler.js          # централизованная обработка ошибок
+├── public/                          # статика (index.html, фото для маскота)
+│   ├── photo/                       # картинки для котодома
 │   └── index.html
-├── src/                           # исходный код клиента и сервера
-│   ├── api/                       # клиентские модули для работы с API
-│   │   ├── api.js                 # реэкспорт всех функций
-│   │   ├── auth.js                # регистрация
-│   │   ├── config.js              # базовый URL
-│   │   ├── items.js               # объявления + пагинация + изменение статуса
-│   │   └── requests.js            # заявки пользователя
-│   ├── bot/                       # логика Telegram-бота
-│   │   └── bot.js                 # бот (ретрансляция сообщений)
-│   ├── db/                        # работа с SQLite
-│   │   └── db.js                  # инициализация, запросы, миграции
-│   ├── components/                # переиспользуемые React-компоненты
+├── src/                             # клиентская часть (React)
+│   ├── api/                         # клиентские модули для работы с API
+│   │   ├── index.js                 # реэкспорт всех функций
+│   │   ├── auth.js                  # регистрация
+│   │   ├── config.js                # базовый URL
+│   │   ├── items.js                 # объявления + пагинация + изменение статуса
+│   │   ├── requests.js              # заявки пользователя
+│   │   └── users.js                 # загрузка аватарки
+│   ├── components/                  # переиспользуемые React-компоненты
 │   │   ├── BottomNav.jsx
 │   │   ├── Catodrom.jsx
 │   │   ├── Modals.jsx
 │   │   └── RatingBadge.jsx
-│   ├── contexts/                  # React-контексты
-│   │   └── AuthContext.jsx        # авторизация и состояние пользователя
-│   ├── pages/                     # страницы приложения
-│   │   ├── HomePage.jsx           # лента с пагинацией
-│   │   ├── ItemsPage.jsx          # мои объявления + управление статусами
+│   ├── contexts/                    # React-контексты
+│   │   └── AuthContext.jsx          # авторизация и состояние пользователя
+│   ├── pages/                       # страницы приложения
+│   │   ├── HomePage.jsx             # лента с пагинацией
+│   │   ├── ItemsPage.jsx            # мои объявления + управление статусами
 │   │   ├── LoginPage.jsx
-│   │   └── ProfilePage.jsx        # загрузка аватара
-│   ├── styles/                    # CSS-файлы
+│   │   └── ProfilePage.jsx          # загрузка аватара
+│   ├── styles/                      # CSS-файлы
 │   │   ├── components.css
 │   │   ├── global.css
 │   │   ├── home.css
 │   │   ├── items.css
 │   │   ├── layout.css
 │   │   └── profile.css
-│   ├── utils/                     # вспомогательные функции и демо-данные
+│   ├── utils/                       # вспомогательные функции и демо-данные
 │   │   ├── demoData.js
 │   │   └── helpers.js
-│   ├── App.js                     # корневой компонент React
-│   ├── index.js                   # точка входа React
-│   ├── server.js                  # основной сервер Express (запускается через npm run server)
+│   ├── App.js                       # корневой компонент React
+│   ├── index.js                     # точка входа React
 │   └── reportWebVitals.js
-├── .dockerignore                  # исключения для Docker-образа
-├── .env.example                   # шаблон переменных окружения
-├── .env                           # (создаётся пользователем, не пушится)
-├── Dockerfile                     # инструкция для сборки Docker-образа
-├── docker-compose.yml             # оркестрация контейнеров
+├── uploads/                         # папка для загруженных фото (создаётся автоматически)
+├── .dockerignore                    # исключения для Docker-образа
+├── .env.example                     # шаблон переменных окружения
+├── .env                             # (создаётся пользователем, не пушится)
+├── Dockerfile                       # инструкция для сборки Docker-образа
+├── docker-compose.yml               # оркестрация контейнеров
 ├── package.json
 ├── package-lock.json
-└── README.md                      # этот файл
+└── README.md                        # этот файл
 ```
 
 ---
@@ -115,13 +124,13 @@ Tyt/
    ```
 
 4. **Запустите сервер и клиент**
-   - В одном терминале: `npm run server`
-   - В другом: `npm start`
+   - В одном терминале: `npm run server` (запускает `backend/server.js`)
+   - В другом: `npm start` (запускает React-клиент)
    - Или одной командой (если установлен concurrently): `npm run dev`
 
 5. **Заполните базу тестовыми данными** (опционально):
    ```bash
-   node seed.js
+   node backend/seed.js
    ```
 
 ---
@@ -285,6 +294,3 @@ docker image prune -f
 ## 📄 Лицензия
 
 Проект создан в образовательных целях. Все права принадлежат авторам.
-```
-
-Теперь README полностью отражает актуальную структуру, включает описание Docker и CI/CD и готов к коммиту. Вы можете добавить его в свою ветку `feature/ci/cd-setup` отдельным коммитом.
