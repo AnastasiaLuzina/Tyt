@@ -123,3 +123,17 @@
   font-weight: 700;
   cursor: pointer;
 }
+.rating-badge {
+    display: inline-block;
+    background: #6d8a73;
+    color: white;
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 700;
+}
+.rating-5 { background: #2d6a4f; }
+.rating-4 { background: #40916c; }
+.rating-3 { background: #52b788; }
+.rating-2 { background: #b7e4c7; color: #1b4332; }
+.rating-1 { background: #d8f3dc; color: #1b4332; }
