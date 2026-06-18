@@ -14,7 +14,6 @@ export async function registerUser(nickname, tag, dorm, telegramId = null) {
   return data.user;
 }
 
-// Отправить код верификации в Telegram
 export async function sendCode(userId) {
   const res = await fetch(`${API_BASE}/api/auth/send-code`, {
     method: 'POST',
@@ -28,7 +27,6 @@ export async function sendCode(userId) {
   return res.json();
 }
 
-// Проверить код
 export async function verifyCode(userId, code) {
   const res = await fetch(`${API_BASE}/api/auth/verify-code`, {
     method: 'POST',
@@ -42,14 +40,12 @@ export async function verifyCode(userId, code) {
   return res.json();
 }
 
-// Проверить, можно ли отправить код (есть ли Telegram ID)
 export async function checkCanSendCode(userId) {
   const res = await fetch(`${API_BASE}/api/auth/can-send-code?userId=${userId}`);
   if (!res.ok) throw new Error('Ошибка проверки');
   return res.json();
 }
 
-// Синхронизировать данные пользователя (получить свежие из БД)
 export async function syncUser(userId) {
   const res = await fetch(`${API_BASE}/api/users/sync?id=${userId}`);
   if (!res.ok) {
