@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 export const CreateModal = ({ isOpen, onClose, onPublish }) => {
@@ -7,7 +7,6 @@ export const CreateModal = ({ isOpen, onClose, onPublish }) => {
   const [category, setCategory] = useState('Книги');
   const [photoFile, setPhotoFile] = useState(null);
   const fileInputRef = useRef();
-  const { telegramId } = useAuth();
 
   const handlePublish = () => {
     if (!title.trim()) return alert('Введите название');
@@ -16,7 +15,6 @@ export const CreateModal = ({ isOpen, onClose, onPublish }) => {
     formData.append('title', title);
     formData.append('description', story || 'Описание');
     formData.append('category', category);
-    formData.append('owner_telegram_id', telegramId);
     formData.append('photo', photoFile);
     onPublish(formData);
     onClose();
@@ -51,6 +49,56 @@ export const CreateModal = ({ isOpen, onClose, onPublish }) => {
   );
 };
 
+export const EditModal = ({ isOpen, onClose, item, onSave }) => {
+  const [title, setTitle] = useState('');
+  const [story, setStory] = useState('');
+  const [category, setCategory] = useState('Книги');
+  const [photoFile, setPhotoFile] = useState(null);
+  const fileInputRef = useRef();
+
+  useEffect(() => {
+    if (item) {
+      setTitle(item.title || '');
+      setStory(item.description || '');
+      setCategory(item.category || 'Книги');
+    }
+  }, [item]);
+
+  const handleSave = () => {
+    if (!title.trim()) return alert('Введите название');
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('description', story || 'Описание');
+    formData.append('category', category);
+    if (photoFile) formData.append('photo', photoFile);
+    onSave(formData);
+  };
+
+  if (!isOpen) return null;
+  return (
+    <div className="modal show" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="sheet">
+        <div className="sheet-title">Редактировать объявление</div>
+        <div className="sheet-sub">Измените данные вашей вещи.</div>
+        <div className="upload-zone" onClick={() => fileInputRef.current.click()} style={{ cursor: 'pointer' }}>
+          <i className="fa-regular fa-image"></i>
+          <p>{photoFile ? photoFile.name : item?.photo_path ? 'Изменить фото' : 'Добавить фото'}</p>
+          <input type="file" ref={fileInputRef} accept="image/*" style={{ display: 'none' }} onChange={(e) => setPhotoFile(e.target.files[0])} />
+        </div>
+        <div className="field">
+          <label>Категория</label>
+          <select className="select" value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option>Книги</option><option>Одежда</option><option>Техника</option><option>Посуда</option><option>Мебель</option><option>Спорт</option><option>Другое</option>
+          </select>
+        </div>
+        <div className="field"><label>Название</label><input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Название вещи" /></div>
+        <div className="field"><label>Описание</label><textarea className="textarea" value={story} onChange={(e) => setStory(e.target.value)} placeholder="Краткое описание" /></div>
+        <div className="actions"><button className="secondary-btn" onClick={onClose}>Отмена</button><button className="primary-btn" onClick={handleSave}>Сохранить</button></div>
+      </div>
+    </div>
+  );
+};
+
 export const NickModal = ({ isOpen, onClose, onSave }) => {
   const [nick, setNick] = useState('');
   const handleSave = () => { if (nick.trim()) onSave(nick); onClose(); };
@@ -79,7 +127,7 @@ export const SettingsModal = ({ isOpen, onClose, onLogout }) => {
           <div className="settings-item"><span>Анимации котика</span><div className="toggle-switch active"></div></div>
           <div className="settings-item"><span>Показывать меня в ленте</span><div className="toggle-switch active"></div></div>
           <div className="settings-item"><span>Тёмная тема</span><div className="toggle-switch"></div></div>
-          <div className="settings-item"><span>О приложении</span><div className="info" style={{ color: 'var(--muted)' }}>Версия 1.0.0</div></div>
+          <div className="settings-item"><span>О приложении</span><div className="info" style={{ color: 'var(--muted)' }}>Версия 2.0.0</div></div>
         </div>
         <div className="settings-danger" onClick={onLogout}>Выйти из аккаунта</div>
       </div>

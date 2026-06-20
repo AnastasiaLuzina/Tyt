@@ -1,127 +1,142 @@
-const sqlite3 = require('sqlite3').verbose();
+const Database = require('better-sqlite3');
 const path = require('path');
-const fs = require('fs');
 
 const dbPath = path.join(__dirname, 'database.sqlite');
-const db = new sqlite3.Database(dbPath);
+const db = new Database(dbPath);
 
+// Обёртки для совместимости с async-кодом
 db.runAsync = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function(err) {
-      if (err) reject(err);
-      else resolve({ lastID: this.lastID, changes: this.changes });
-    });
-  });
+    try {
+        const stmt = db.prepare(sql);
+        const info = stmt.run(params);
+        return Promise.resolve({ lastID: info.lastInsertRowid, changes: info.changes });
+    } catch (err) {
+        return Promise.reject(err);
+    }
 };
 
 db.getAsync = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (err, row) => {
-      if (err) reject(err);
-      else resolve(row);
-    });
-  });
+    try {
+        const stmt = db.prepare(sql);
+        const row = stmt.get(params);
+        return Promise.resolve(row);
+    } catch (err) {
+        return Promise.reject(err);
+    }
 };
 
 db.allAsync = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (err, rows) => {
-      if (err) reject(err);
-      else resolve(rows);
-    });
-  });
+    try {
+        const stmt = db.prepare(sql);
+        const rows = stmt.all(params);
+        return Promise.resolve(rows);
+    } catch (err) {
+        return Promise.reject(err);
+    }
 };
 
 const initDB = async () => {
-  // Таблицы сайта
-  await db.runAsync(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      telegram_id INTEGER UNIQUE,
-      nickname TEXT NOT NULL,
-      tag TEXT UNIQUE NOT NULL,
-      dorm TEXT NOT NULL,
-      avatar_url TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      trust_level INTEGER DEFAULT 3
-    )
-  `);
+    // Таблицы сайта
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            telegram_id INTEGER UNIQUE,
+            nickname TEXT NOT NULL,
+            tag TEXT UNIQUE NOT NULL,
+            dorm TEXT NOT NULL,
+            avatar_url TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            trust_level INTEGER DEFAULT 3
+        )
+    `);
 
-  await db.runAsync(`
-    CREATE TABLE IF NOT EXISTS items (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      owner_telegram_id INTEGER NOT NULL,
-      title TEXT NOT NULL,
-      description TEXT,
-      category TEXT NOT NULL,
-      photo_path TEXT,
-      status TEXT DEFAULT 'active',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            owner_telegram_id INTEGER NOT NULL,
+            title TEXT NOT NULL,
+            description TEXT,
+            category TEXT NOT NULL,
+            photo_path TEXT,
+            status TEXT DEFAULT 'active',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
 
-  // Таблицы бота
-  await db.runAsync(`
-    CREATE TABLE IF NOT EXISTS bot_user (
-      telegram_id INTEGER PRIMARY KEY,
-      first_name TEXT,
-      username TEXT
-    )
-  `);
+    // Таблицы бота
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS bot_user (
+            telegram_id INTEGER PRIMARY KEY,
+            first_name TEXT,
+            username TEXT
+        )
+    `);
 
-  await db.runAsync(`
-    CREATE TABLE IF NOT EXISTS conversation (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      item_id INTEGER NOT NULL,
-      owner_telegram_id INTEGER NOT NULL,
-      seeker_telegram_id INTEGER NOT NULL,
-      token TEXT UNIQUE NOT NULL,
-      status TEXT DEFAULT 'active',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (owner_telegram_id) REFERENCES users(telegram_id) ON DELETE CASCADE,
-      FOREIGN KEY (seeker_telegram_id) REFERENCES users(telegram_id) ON DELETE CASCADE
-    )
-  `);
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS conversation (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_id INTEGER NOT NULL,
+            owner_telegram_id INTEGER NOT NULL,
+            seeker_telegram_id INTEGER NOT NULL,
+            token TEXT UNIQUE NOT NULL,
+            status TEXT DEFAULT 'active',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (owner_telegram_id) REFERENCES users(telegram_id) ON DELETE CASCADE,
+            FOREIGN KEY (seeker_telegram_id) REFERENCES users(telegram_id) ON DELETE CASCADE
+        )
+    `);
 
-  await db.runAsync(`
-    CREATE TABLE IF NOT EXISTS user_session (
-      telegram_id INTEGER PRIMARY KEY,
-      conversation_id INTEGER
-    )
-  `);
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS user_session (
+            telegram_id INTEGER PRIMARY KEY,
+            conversation_id INTEGER
+        )
+    `);
 
-  await db.runAsync(`
-    CREATE TABLE IF NOT EXISTS message_log (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      conversation_id INTEGER,
-      from_telegram_id INTEGER,
-      text TEXT,
-      sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS message_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            conversation_id INTEGER,
+            from_telegram_id INTEGER,
+            text TEXT,
+            sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    `);
 
-  console.log('✅ Database initialized');
+    db.exec(`
+        CREATE TABLE IF NOT EXISTS verification_codes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            telegram_id INTEGER NOT NULL,
+            code TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            expires_at DATETIME NOT NULL,
+            user_id INTEGER NULL,
+            used BOOLEAN DEFAULT 0
+        )
+    `);
 
-  // Миграции: добавить avatar_url в users (если нет)
-  try {
-    await db.runAsync(`ALTER TABLE users ADD COLUMN avatar_url TEXT`);
-    console.log('➕ Поле avatar_url добавлено в users');
-  } catch (err) {
-    if (!err.message.includes('duplicate column name')) {
-      console.warn('⚠️ Не удалось добавить avatar_url:', err.message);
+    console.log('✅ Database initialized (better-sqlite3)');
+
+    // Миграция: добавить поле updated_at, если его нет
+    try {
+        db.exec(`ALTER TABLE items ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`);
+        console.log('➕ Поле updated_at добавлено в таблицу items');
+    } catch (err) {
+        if (!err.message.includes('duplicate column name')) {
+            console.warn('⚠️ Не удалось добавить updated_at:', err.message);
+        }
     }
-  }
 
-  // Миграции: добавить updated_at в items (если нет)
-  try {
-    await db.runAsync(`ALTER TABLE items ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`);
-    console.log('➕ Поле updated_at добавлено в items');
-  } catch (err) {
-    if (!err.message.includes('duplicate column name')) {
-      console.warn('⚠️ Не удалось добавить updated_at:', err.message);
+    // Миграция: добавить avatar_url (если уже есть, то игнорируем)
+    try {
+        db.exec(`ALTER TABLE users ADD COLUMN avatar_url TEXT`);
+        console.log('➕ Поле avatar_url добавлено в таблицу users');
+    } catch (err) {
+        if (!err.message.includes('duplicate column name')) {
+            console.warn('⚠️ Не удалось добавить avatar_url:', err.message);
+        }
     }
-  }
 };
 
 module.exports = { db, initDB };

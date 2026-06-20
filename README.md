@@ -1,26 +1,27 @@
-# «Тут» — сервис обмена вещами в общежитии (v2)
+# «Тут» — сервис обмена вещами в общежитии (v3)
 
-**«Тут»** — это веб-приложение для студентов, позволяющее отдавать и забирать ненужные вещи внутри своего общежития. Проект сочетает удобный интерфейс (React) с бэкендом на Express, Telegram-ботом для анонимного общения, пагинацией, управлением статусами, загрузкой аватар и **полной контейнеризацией** с CI/CD через GitHub Actions.
+**«Тут»** — это веб-приложение для студентов, позволяющее отдавать и забирать ненужные вещи внутри своего общежития. Проект сочетает удобный интерфейс (React) с бэкендом на Express, Telegram-ботом для анонимного общения, пагинацией, поиском, редактированием объявлений, загрузкой аватар и **полной контейнеризацией** с CI/CD через GitHub Actions.
 
 ---
 
-## 📦 Функциональность
+## 📦 Функциональность (v3)
 
 - Публикация объявлений с фото.
 - Категоризация вещей (книги, одежда, техника и др.).
-- Просмотр ленты активных объявлений с **пагинацией** и фильтром по категориям.
+- Просмотр ленты активных объявлений с **пагинацией** и **поиском** по названию и описанию.
+- Фильтр по категориям.
 - Возможность оставить заявку на понравившуюся вещь.
 - Автоматическое создание диалога в Telegram между владельцем и заявителем.
 - Управление своими объявлениями:
   - просмотр заявок,
   - выбор получателя,
-  - **изменение статуса** (активно / зарезервировано / завершено / архив).
+  - **редактирование** (название, описание, категория, фото),
+  - **изменение статуса** (активно / зарезервировано / завершено).
 - Профиль пользователя с **загрузкой аватарки**, «котодомом» (интерактивный маскот) и настройками.
-- Бонусная система «Обменять тепло» (купон на скидку).
-- **Безопасное хранение токена бота** через переменные окружения (`.env`).
-- **Контейнеризация** (Docker + docker-compose) для простого развёртывания.
-- **Автоматическая сборка и публикация Docker-образа** в GitHub Container Registry (GHCR) через GitHub Actions.
-- **(Опционально)** Автоматический деплой на VPS через SSH.
+- **Верификация через Telegram** с таймером обратного отсчёта и повторной отправкой кода.
+- **Документация API** через Swagger UI (`/api-docs`).
+- Безопасное хранение токена бота через переменные окружения (`.env`).
+- Контейнеризация (Docker + docker-compose) и автоматическая сборка/публикация образа в GitHub Container Registry (GHCR) через GitHub Actions.
 
 ---
 
@@ -39,64 +40,60 @@
 Tyt/
 ├── .github/
 │   └── workflows/
-│       └── docker-publish.yml      # CI/CD пайплайн GitHub Actions
+│       └── docker-publish.yml
 ├── backend/                         # серверная часть
-│   ├── server.js                    # основной сервер Express
-│   ├── bot.js                       # Telegram-бот (ретрансляция сообщений)
+│   ├── server.js                    # основной сервер Express (с Swagger)
+│   ├── bot.js                       # Telegram-бот
 │   ├── db.js                        # инициализация SQLite и запросы
-│   ├── seed.js                      # заполнение БД тестовыми данными (опционально)
-│   ├── routes/                      # роуты API
-│   │   ├── auth.js
-│   │   ├── items.js
-│   │   ├── requests.js
-│   │   └── users.js
+│   ├── seed.js                      # заполнение БД тестовыми данными
+│   ├── routes/                      # роуты API (опционально, если не в server.js)
 │   └── middleware/
-│       └── errorHandler.js          # централизованная обработка ошибок
 ├── public/                          # статика (index.html, фото для маскота)
-│   ├── photo/                       # картинки для котодома
+│   ├── photo/
 │   └── index.html
 ├── src/                             # клиентская часть (React)
 │   ├── api/                         # клиентские модули для работы с API
-│   │   ├── index.js                 # реэкспорт всех функций
-│   │   ├── auth.js                  # регистрация
+│   │   ├── index.js                 # реэкспорт
+│   │   ├── auth.js                  # регистрация, верификация, синхронизация
 │   │   ├── config.js                # базовый URL
-│   │   ├── items.js                 # объявления + пагинация + изменение статуса
+│   │   ├── items.js                 # объявления + пагинация + редактирование
 │   │   ├── requests.js              # заявки пользователя
 │   │   └── users.js                 # загрузка аватарки
 │   ├── components/                  # переиспользуемые React-компоненты
 │   │   ├── BottomNav.jsx
 │   │   ├── Catodrom.jsx
-│   │   ├── Modals.jsx
+│   │   ├── Modals.jsx               # CreateModal, EditModal, NickModal, SettingsModal
 │   │   └── RatingBadge.jsx
 │   ├── contexts/                    # React-контексты
-│   │   └── AuthContext.jsx          # авторизация и состояние пользователя
+│   │   └── AuthContext.jsx
 │   ├── pages/                       # страницы приложения
-│   │   ├── HomePage.jsx             # лента с пагинацией
-│   │   ├── ItemsPage.jsx            # мои объявления + управление статусами
+│   │   ├── HomePage.jsx             # лента с пагинацией и поиском
+│   │   ├── ItemsPage.jsx            # мои объявления + редактирование
 │   │   ├── LoginPage.jsx
-│   │   └── ProfilePage.jsx          # загрузка аватара
+│   │   ├── ProfilePage.jsx          # загрузка аватарки
+│   │   └── VerifyPage.jsx           # верификация с таймером
 │   ├── styles/                      # CSS-файлы
-│   │   ├── components.css
+│   │   ├── components.css           # стили для RatingBadge и др.
 │   │   ├── global.css
 │   │   ├── home.css
 │   │   ├── items.css
 │   │   ├── layout.css
 │   │   └── profile.css
-│   ├── utils/                       # вспомогательные функции и демо-данные
+│   ├── utils/                       # вспомогательные функции
 │   │   ├── demoData.js
 │   │   └── helpers.js
-│   ├── App.js                       # корневой компонент React
-│   ├── index.js                     # точка входа React
+│   ├── App.js
+│   ├── index.js
 │   └── reportWebVitals.js
-├── uploads/                         # папка для загруженных фото (создаётся автоматически)
-├── .dockerignore                    # исключения для Docker-образа
-├── .env.example                     # шаблон переменных окружения
+├── uploads/                         # папка для загруженных фото (создаётся)
+├── .dockerignore
+├── .env.example
 ├── .env                             # (создаётся пользователем, не пушится)
-├── Dockerfile                       # инструкция для сборки Docker-образа
-├── docker-compose.yml               # оркестрация контейнеров
+├── Dockerfile
+├── docker-compose.yml
 ├── package.json
 ├── package-lock.json
-└── README.md                        # этот файл
+└── README.md
 ```
 
 ---
@@ -114,180 +111,82 @@ Tyt/
 2. **Установите зависимости**
    ```bash
    npm install
+   # для Swagger добавьте:
+   npm install swagger-ui-express swagger-jsdoc
    ```
 
-3. **Создайте файл `.env`** (скопируйте `.env.example` и укажите свои значения):
-   ```
+3. **Создайте файл `.env`** (скопируйте `.env.example`):
+   ```env
    BOT_TOKEN=ваш_токен_от_BotFather
    PORT=8001
-   BOT_USERNAME=TytShare_BoT   # опционально
+   BOT_USERNAME=TytShare_BoT
+   SITE_URL=http://localhost:3000   # для кнопки "Сайт" в боте
    ```
 
 4. **Запустите сервер и клиент**
    - В одном терминале: `npm run server` (запускает `backend/server.js`)
    - В другом: `npm start` (запускает React-клиент)
-   - Или одной командой (если установлен concurrently): `npm run dev`
+   - Или одной командой: `npm run dev` (если установлен concurrently)
 
 5. **Заполните базу тестовыми данными** (опционально):
    ```bash
    node backend/seed.js
    ```
 
----
-
 ### 🐳 Запуск через Docker (рекомендуется для продакшена)
 
-1. **Убедитесь, что установлены Docker и Docker Compose.**
-
-2. **Скопируйте `.env.example` в `.env`** и заполните реальными данными (токен бота и т.д.).
-
+1. **Установите Docker и Docker Compose.**
+2. **Скопируйте `.env.example` в `.env`** и заполните реальными данными.
 3. **Соберите и запустите контейнер:**
    ```bash
    docker-compose up -d
    ```
-   При первом запуске образ будет собран локально (если вы используете `build: .` в compose-файле) или скачан из реестра.
-
 4. **Проверьте логи:**
    ```bash
    docker-compose logs -f
    ```
-
-5. Откройте браузер на `http://localhost:8001` — приложение готово к работе.
+5. Откройте браузер на `http://localhost:8001` — приложение готово.
 
 ---
 
-### 🔄 Обновление на сервере (при использовании CI/CD)
+## 📚 Документация API (Swagger)
 
-Если вы настроили автоматическую публикацию образов в GHCR, на сервере достаточно выполнить:
-```bash
-cd /opt/tyt   # или ваша папка с проектом
-docker-compose pull
-docker-compose up -d
-docker image prune -f
+После запуска сервера документация доступна по адресу:
 ```
+http://localhost:8001/api-docs
+```
+
+Там описаны все эндпоинты: регистрация, получение объявлений с пагинацией, создание, редактирование, заявки, верификация и загрузка аватара.
 
 ---
 
 ## ⚙️ CI/CD (GitHub Actions)
 
-В папке `.github/workflows/` лежит файл `docker-publish.yml`. Он автоматически:
-- Собирает Docker-образ при пуше в `main`.
-- Публикует его в **GitHub Container Registry (GHCR)** с тегами `latest` и с коротким хешем коммита.
-- (Опционально) Деплоит на VPS через SSH, если настроены секреты.
-
-**Для деплоя на сервер нужно добавить в настройках репозитория (Settings → Secrets) следующие секреты:**
-- `DEPLOY_HOST` — IP сервера.
-- `DEPLOY_USER` — имя пользователя (например, `root`).
-- `DEPLOY_SSH_KEY` — приватный SSH-ключ.
-
-Подробнее см. в файле `.github/workflows/docker-publish.yml`.
+В папке `.github/workflows/` лежит файл `docker-publish.yml`. При пуше в `main` автоматически:
+- Собирается Docker-образ.
+- Публикуется в GitHub Container Registry (GHCR).
+- (Опционально) Деплоится на VPS через SSH (если настроены секреты).
 
 ---
 
-## 🔌 API Эндпоинты
+## 🔌 Основные API эндпоинты (кратко)
 
-### 1. Регистрация пользователя
-`POST /api/auth/register`
+| Метод | Путь | Описание |
+|-------|------|----------|
+| POST | `/api/auth/register` | Регистрация пользователя |
+| GET | `/api/users/sync?id=` | Получить актуальные данные пользователя |
+| POST | `/api/auth/send-code` | Отправить код верификации в Telegram |
+| POST | `/api/auth/verify-code` | Проверить код и привязать Telegram |
+| GET | `/api/items?page=&limit=&exclude_telegram_id=` | Получить объявления с пагинацией |
+| POST | `/api/items` | Создать объявление (multipart/form-data) |
+| PUT | `/api/items/:id` | Редактировать объявление (multipart/form-data) |
+| GET | `/api/items/my?telegram_id=` | Мои объявления (я отдаю) |
+| POST | `/api/items/:id/claim` | Оставить заявку |
+| GET | `/api/requests/my?telegram_id=` | Мои заявки (я хочу) |
+| PUT | `/api/items/:id/status` | Изменить статус объявления |
+| POST | `/api/users/avatar` | Загрузить аватарку (multipart/form-data) |
 
-**Тело (JSON):**
-```json
-{
-  "nickname": "Алиса",
-  "tag": "@alisa",
-  "dorm": "Корпус 8.1",
-  "telegram_id": 123456789   // опционально
-}
-```
-**Ответ (201 / 200):**
-```json
-{
-  "user": {
-    "id": 1,
-    "telegram_id": 123456789,
-    "nickname": "Алиса",
-    "tag": "@alisa",
-    "dorm": "Корпус 8.1",
-    "trust_level": 3,
-    "avatar_url": null,
-    "created_at": "2026-06-25 12:00:00"
-  }
-}
-```
-
-### 2. Получение активных объявлений (с пагинацией)
-`GET /api/items?page=1&limit=10`
-
-**Ответ (200):**
-```json
-{
-  "items": [ ... ],
-  "total": 42,
-  "page": 1,
-  "limit": 10,
-  "totalPages": 5
-}
-```
-
-### 3. Создание объявления
-`POST /api/items` (multipart/form-data)
-
-Параметры: `title`, `description`, `category`, `owner_telegram_id`, `photo` (файл).
-
-**Ответ (201):**
-```json
-{
-  "id": 2,
-  "title": "Тёплая худи",
-  "status": "active",
-  ...
-}
-```
-
-### 4. Мои объявления (я отдаю)
-`GET /api/items/my?telegram_id={telegram_id}`
-
-Возвращает список вещей с заявителями (из `conversation`).
-
-### 5. Заявка «заберу»
-`POST /api/items/{itemId}/claim`
-
-**Тело (JSON):**
-```json
-{ "user_telegram_id": 987654321 }
-```
-**Ответ:**
-```json
-{
-  "success": true,
-  "bot_link": "https://t.me/TytShare_BoT?start=abc123",
-  "token": "abc123"
-}
-```
-
-### 6. Мои заявки (я хочу)
-`GET /api/requests/my?telegram_id={telegram_id}`
-
-### 7. Изменение статуса объявления
-`PUT /api/items/{itemId}/status`
-
-**Тело:**
-```json
-{ "status": "reserved" }   // active, reserved, completed, archived
-```
-**Ответ:**
-```json
-{ "success": true }
-```
-
-### 8. Загрузка аватарки
-`POST /api/users/avatar` (multipart/form-data)
-
-Параметры: `telegram_id`, `avatar` (файл).
-
-**Ответ:**
-```json
-{ "avatar_url": "/uploads/1234567890-avatar.jpg" }
-```
+Подробности с примерами ответов — в Swagger.
 
 ---
 
