@@ -7,8 +7,8 @@ const multer = require('multer');
 const swaggerUi = require('swagger-ui-express');
 const swaggerJsdoc = require('swagger-jsdoc');
 
-const { initDB, db } = require('./db');
-const { bot } = require('./bot'); // для отправки кодов через бота
+const { initDB, db } = require('./db/db');
+const { bot } = require('./bot/bot');
 
 const app = express();
 const PORT = process.env.PORT || 8001;
@@ -45,7 +45,7 @@ const swaggerOptions = {
     },
     servers: [{ url: `http://localhost:${PORT}` }],
   },
-  apis: ['./server.js'], // можно вынести в отдельный файл
+  apis: ['./server.js'],
 };
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
@@ -693,12 +693,16 @@ app.put('/api/items/:id/status', async (req, res) => {
 });
 
 // ------------------ Запуск сервера ------------------
-initDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 Сервер запущен на http://localhost:${PORT}`);
-    console.log(`📘 Документация API: http://localhost:${PORT}/api-docs`);
+if (require.main === module) {
+  initDB().then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 Сервер запущен на http://localhost:${PORT}`);
+      console.log(`📘 Документация API: http://localhost:${PORT}/api-docs`);
+    });
+    require('./bot');
+  }).catch(err => {
+    console.error('❌ Не удалось инициализировать БД', err);
   });
-  require('./bot'); // бот запускается отдельно
-}).catch(err => {
-  console.error('❌ Не удалось инициализировать БД', err);
-});
+}
+
+module.exports = app; // Экспортируем для тестов
