@@ -11,11 +11,34 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  # -------- Тесты --------
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install   # заменено с npm ci на npm install
+
+      - name: Run server tests
+        run: npm test
+        env:
+          NODE_ENV: test   # чтобы использовалась in-memory БД
+
+  # -------- Сборка и публикация Docker-образа --------
   build-and-push:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout repository
@@ -45,11 +68,11 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+  # -------- (Опционально) Деплой на VPS через SSH --------
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
+    if: false   # временно отключено из-за отсутствия секретов
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

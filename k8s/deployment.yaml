@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tyt-app
+  namespace: default
+  labels:
+    app: tyt
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: tyt
+  template:
+    metadata:
+      labels:
+        app: tyt
+    spec:
+      containers:
+      - name: app
+        image: ghcr.io/anastasialuzina/tyt:latest   # замените на свой репозиторий
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8001
+          name: http
+        env:
+        - name: PORT
+          value: "8001"
+        - name: BOT_USERNAME
+          value: "TytShare_BoT"
+        - name: SITE_URL
+          value: "https://tyt.example.com"   # замените на ваш домен
+        envFrom:
+        - secretRef:
+            name: tyt-secrets   # секрет с BOT_TOKEN и другими чувствительными данными
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /api/items
+            port: 8001
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/items
+            port: 8001
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      imagePullSecrets:
+      - name: regcred   # если нужен для доступа к GHCR, создайте его отдельно

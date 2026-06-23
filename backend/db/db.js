@@ -1,10 +1,12 @@
 const Database = require('better-sqlite3');
 const path = require('path');
 
-const dbPath = path.join(__dirname, 'database.sqlite');
+// Если NODE_ENV === 'test', используем in-memory
+const isTest = process.env.NODE_ENV === 'test';
+const dbPath = isTest ? ':memory:' : path.join(__dirname, 'database.sqlite');
 const db = new Database(dbPath);
 
-// Обёртки для совместимости с async-кодом
+// Обёртки для async-кода
 db.runAsync = (sql, params = []) => {
     try {
         const stmt = db.prepare(sql);
@@ -36,7 +38,7 @@ db.allAsync = (sql, params = []) => {
 };
 
 const initDB = async () => {
-    // Таблицы сайта
+    // Все таблицы (как в предыдущей версии)
     db.exec(`
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,7 +51,6 @@ const initDB = async () => {
             trust_level INTEGER DEFAULT 3
         )
     `);
-
     db.exec(`
         CREATE TABLE IF NOT EXISTS items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -63,8 +64,6 @@ const initDB = async () => {
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
-
-    // Таблицы бота
     db.exec(`
         CREATE TABLE IF NOT EXISTS bot_user (
             telegram_id INTEGER PRIMARY KEY,
@@ -72,7 +71,6 @@ const initDB = async () => {
             username TEXT
         )
     `);
-
     db.exec(`
         CREATE TABLE IF NOT EXISTS conversation (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,14 +84,12 @@ const initDB = async () => {
             FOREIGN KEY (seeker_telegram_id) REFERENCES users(telegram_id) ON DELETE CASCADE
         )
     `);
-
     db.exec(`
         CREATE TABLE IF NOT EXISTS user_session (
             telegram_id INTEGER PRIMARY KEY,
             conversation_id INTEGER
         )
     `);
-
     db.exec(`
         CREATE TABLE IF NOT EXISTS message_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,7 +99,6 @@ const initDB = async () => {
             sent_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     `);
-
     db.exec(`
         CREATE TABLE IF NOT EXISTS verification_codes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -115,27 +110,17 @@ const initDB = async () => {
             used BOOLEAN DEFAULT 0
         )
     `);
-
-    console.log('✅ Database initialized (better-sqlite3)');
-
-    // Миграция: добавить поле updated_at, если его нет
+    console.log('✅ Database initialized (in-memory if test)');
+    // Миграции
     try {
         db.exec(`ALTER TABLE items ADD COLUMN updated_at DATETIME DEFAULT CURRENT_TIMESTAMP`);
-        console.log('➕ Поле updated_at добавлено в таблицу items');
     } catch (err) {
-        if (!err.message.includes('duplicate column name')) {
-            console.warn('⚠️ Не удалось добавить updated_at:', err.message);
-        }
+        if (!err.message.includes('duplicate column name')) console.warn('⚠️ updated_at:', err.message);
     }
-
-    // Миграция: добавить avatar_url (если уже есть, то игнорируем)
     try {
         db.exec(`ALTER TABLE users ADD COLUMN avatar_url TEXT`);
-        console.log('➕ Поле avatar_url добавлено в таблицу users');
     } catch (err) {
-        if (!err.message.includes('duplicate column name')) {
-            console.warn('⚠️ Не удалось добавить avatar_url:', err.message);
-        }
+        if (!err.message.includes('duplicate column name')) console.warn('⚠️ avatar_url:', err.message);
     }
 };
 
